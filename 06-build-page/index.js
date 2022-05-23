@@ -1,4 +1,3 @@
-const fs = require('fs');
 const path = require('path')
 const fsPromises = require('fs/promises')
 
@@ -9,6 +8,10 @@ const pathCopyAssetsDir = path.join(pathProjectDist, 'assets')
 const pathToFolderStyles = path.join(__dirname, 'styles')
 const pathToNewStyle = path.join(__dirname, 'project-dist', 'style.css')
 let arrCollectStyle = []
+
+const pathTemplateHtml = path.join(__dirname, 'template.html')
+const pathComponents = path.join(__dirname, 'components')
+const pathToNewHtml = path.join(__dirname, 'project-dist', 'index.html')
 
 async function createMainFolder(path) {
     await fsPromises.mkdir(path)
@@ -58,9 +61,25 @@ async function createStyleCss(folder) {
     await fsPromises.writeFile(pathToNewStyle, arrCollectStyle)
 }
 
+async function createMarkupHTML() {
+    let htmlMain = await fsPromises.readFile(pathTemplateHtml, 'utf-8')
+    const arrComponentsName = await fsPromises.readdir(pathComponents, { withFileTypes: true })
+
+    for (const component of arrComponentsName) {
+        const componentMarkup = await fsPromises.readFile(path.join(pathComponents, component.name), 'utf-8')
+
+        let nameSections = (component.name).slice(0, component.name.indexOf('.'))
+
+        htmlMain = htmlMain.replace((`{{${nameSections}}}`), componentMarkup)
+    }
+
+    await fsPromises.writeFile(pathToNewHtml, htmlMain)
+}
+
 (async function () {
     await fsPromises.rm(pathProjectDist, { recursive: true, force: true })
     await createMainFolder(pathProjectDist)
     await copyDir(pathAssetsDir, pathCopyAssetsDir)
     await createStyleCss(pathToFolderStyles)
+    await createMarkupHTML()
 })()
